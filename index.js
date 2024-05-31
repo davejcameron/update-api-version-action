@@ -14,7 +14,6 @@ function getLatestApiVersion() {
 }
 
 function updateTomlFile(filePath) {
-  console.log(`Updating TOML file: ${filePath}`);
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     const parsedToml = TOML.parse(content);
@@ -30,10 +29,8 @@ function updateTomlFile(filePath) {
 
 function runShopifyCommand(dirPath) {
   if (process.env.SHOPIFY_CLI_PARTNERS_TOKEN) {
-    console.log(`Running Shopify command in directory: ${dirPath}`);
     try {
       execSync(`shopify app function schema --path ${dirPath}`, { stdio: 'inherit' });
-      console.log(`Successfully ran Shopify command in ${dirPath}`);
     } catch (error) {
       console.error(`Error running Shopify command in ${dirPath}: ${error.message}`);
     }
@@ -43,38 +40,28 @@ function runShopifyCommand(dirPath) {
 }
 
 function findTomlFiles(dir) {
-  console.log(`Searching for TOML files in directory: ${dir}`);
   let results = [];
-  try {
-    const files = fs.readdirSync(dir);
-    for (const file of files) {
-      const fullPath = path.join(dir, file);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        results = results.concat(findTomlFiles(fullPath));
-      } else if (file === 'shopify.extension.toml') {
-        results.push(fullPath);
-      }
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      results = results.concat(findTomlFiles(fullPath));
+    } else if (file === 'shopify.extension.toml') {
+      results.push(fullPath);
     }
-    console.log(`Found TOML files: ${results}`);
-  } catch (error) {
-    console.error(`Error finding TOML files in ${dir}: ${error.message}`);
   }
   return results;
 }
 
 function updateApiVersionsAndRunCommand(baseDir) {
-  console.log(`Updating API versions and running Shopify commands for base directory: ${baseDir}`);
-  try {
-    const tomlFiles = findTomlFiles(baseDir);
-    for (const tomlFile of tomlFiles) {
-      updateTomlFile(tomlFile);
-      runShopifyCommand(path.dirname(tomlFile));
-    }
-    console.log(`Completed updating API versions and running Shopify commands for ${baseDir}`);
-  } catch (error) {
-    console.error(`Error in updateApiVersionsAndRunCommand: ${error.message}`);
+  const tomlFiles = findTomlFiles(baseDir);
+  for (const tomlFile of tomlFiles) {
+    updateTomlFile(tomlFile);
+    runShopifyCommand(path.dirname(tomlFile));
   }
 }
+
+updateApiVersionsAndRunCommand(process.cwd());
 
 module.exports = { getLatestApiVersion, updateTomlFile, runShopifyCommand, updateApiVersionsAndRunCommand };
