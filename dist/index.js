@@ -9,6 +9,7 @@ const core = __nccwpck_require__(2186);
 const toml = __nccwpck_require__(4920);
 const tomlify = __nccwpck_require__(5965);
 const { execSync } = __nccwpck_require__(2081);
+const path = __nccwpck_require__(1017);
 
 function getLatestApiVersion() {
   const today = new Date();
@@ -49,25 +50,39 @@ function updateTomlFile(filePath) {
   console.log(`Updated ${filePath} with the latest API version: ${latestApiVersion}`);
 }
 
+function runShopifyCommand(dirPath) {
+  if (process.env.SHOPIFY_CLI_PARTNERS_TOKEN) {
+    execSync(`shopify app function schema --path ${dirPath}`, { stdio: 'inherit' });
+  }
+}
+
 try {
-  // Find all shopify.extension.toml files in the repository
-  const files = execSync('find . -name shopify.extension.toml').toString().split('\n').filter(f => f);
-  
-  // Update each found file
-  files.forEach(filePath => {
+  // Find all modified shopify.extension.toml files in the repository
+  const modifiedFiles = execSync('git diff --name-only HEAD~1 HEAD').toString().split('\n').filter(f => f.endsWith('shopify.extension.toml'));
+
+  // Check if the environment variable is set
+  const shopifyToken = process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
+
+  // Update each found file and run the Shopify command if the ENV is set
+  modifiedFiles.forEach(filePath => {
     updateTomlFile(filePath);
+
+    if (shopifyToken) {
+      const directoryPath = path.dirname(filePath);
+      runShopifyCommand(directoryPath);
+    }
   });
 
   // If no files were found, log a message
-  if (!files.length) {
-    console.log('No shopify.extension.toml files found.');
+  if (!modifiedFiles.length) {
+    console.log('No modified shopify.extension.toml files found.');
   }
 } catch (error) {
-  core.setFailed(error.message);
+  core.setFailed(`Action failed with error: ${error.message}`);
 }
 
 // Export functions for testing
-module.exports = { getLatestApiVersion, updateTomlFile };
+module.exports = { getLatestApiVersion, updateTomlFile, runShopifyCommand };
 
 /***/ }),
 

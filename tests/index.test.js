@@ -1,11 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { getLatestApiVersion, updateTomlFile, runShopifyCommand } = require('../index');
 
-// Import the functions you want to test
-const { getLatestApiVersion, updateTomlFile } = require('../index');
+// Mocking execSync for controlled test environment
+jest.mock('child_process', () => ({
+  execSync: jest.fn()
+}));
 
 describe('GitHub Action for Updating Shopify API Version', () => {
+
+  beforeEach(() => {
+    require('child_process').execSync.mockClear(); // Reset mock calls for each test
+  });
 
   test('should get the latest API version', () => {
     const latestVersion = getLatestApiVersion();
@@ -57,4 +64,35 @@ describe('GitHub Action for Updating Shopify API Version', () => {
     // Clean up the test file
     fs.unlinkSync(testFilePath);
   });
+
+  test('should run Shopify command if environment variable is set', () => {
+    const testDirPath = path.resolve(__dirname);
+    const shopifyToken = 'test_token';
+
+    // Mocking the presence of environment variable
+    process.env.SHOPIFY_CLI_PARTNERS_TOKEN = shopifyToken;
+
+    // Run the Shopify command
+    runShopifyCommand(testDirPath);
+
+    // Expect the execSync to be called with the correct command
+    expect(require('child_process').execSync).toHaveBeenCalledWith(`shopify app function schema --path ${testDirPath}`, { stdio: 'inherit' });
+
+    // Clean up the environment variable
+    delete process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
+  });
+
+  test('should not run Shopify command if environment variable is not set', () => {
+    const testDirPath = path.resolve(__dirname);
+
+    // Ensure the environment variable is not set
+    delete process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
+
+    // Run the Shopify command
+    runShopifyCommand(testDirPath);
+
+    // Expect the execSync not to be called
+    expect(require('child_process').execSync).not.toHaveBeenCalledWith(`shopify app function schema --path ${testDirPath}`, { stdio: 'inherit' });
+  });
+
 });
