@@ -37,7 +37,8 @@ jobs:
       - name: Update Shopify API version
         uses: davejcameron/update-api-version-action@main
         env:
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_TOKEN }}
+          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }} # App context to use
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
