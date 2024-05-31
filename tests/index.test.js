@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
-const { getLatestApiVersion, updateTomlFile, runShopifyCommand } = require('../index');
 
 // Mocking execSync for controlled test environment
 jest.mock('child_process', () => ({
   execSync: jest.fn()
 }));
+
+const { getLatestApiVersion, updateTomlFile, runShopifyCommand, updateApiVersionsAndRunCommand } = require('../index');
 
 describe('GitHub Action for Updating Shopify API Version', () => {
 
@@ -19,16 +19,7 @@ describe('GitHub Action for Updating Shopify API Version', () => {
     const today = new Date();
     const year = today.getUTCFullYear();
 
-    let expectedQuarter;
-    if (today.getUTCMonth() < 3) {
-      expectedQuarter = 1;
-    } else if (today.getUTCMonth() < 6) {
-      expectedQuarter = 4;
-    } else if (today.getUTCMonth() < 9) {
-      expectedQuarter = 7;
-    } else {
-      expectedQuarter = 10;
-    }
+    const expectedQuarter = [1, 4, 7, 10][Math.floor(today.getUTCMonth() / 3)];
     const expectedVersion = `${year}-${String(expectedQuarter).padStart(2, '0')}`;
 
     expect(latestVersion).toBe(expectedVersion);
@@ -92,7 +83,53 @@ describe('GitHub Action for Updating Shopify API Version', () => {
     runShopifyCommand(testDirPath);
 
     // Expect the execSync not to be called
-    expect(require('child_process').execSync).not.toHaveBeenCalledWith(`shopify app function schema --path ${testDirPath}`, { stdio: 'inherit' });
+    expect(require('child_process').execSync).not.toHaveBeenCalled();
+  });
+
+  test('should update all TOML files and run Shopify command if environment variable is set', () => {
+    const testDirPath = path.resolve(__dirname);
+    const shopifyToken = 'test_token';
+
+    // Mocking the presence of environment variable
+    process.env.SHOPIFY_CLI_PARTNERS_TOKEN = shopifyToken;
+
+    // Create a test directory structure with TOML files
+    const testFilePath1 = path.join(testDirPath, 'dir1/shopify.extension.toml');
+    const testFilePath2 = path.join(testDirPath, 'dir2/shopify.extension.toml');
+    fs.mkdirSync(path.dirname(testFilePath1), { recursive: true });
+    fs.writeFileSync(testFilePath1, `
+      name = "Test Extension"
+      type = "product_discounts"
+      api_version = "2022-10"
+    `);
+    fs.mkdirSync(path.dirname(testFilePath2), { recursive: true });
+    fs.writeFileSync(testFilePath2, `
+      name = "Test Extension"
+      type = "product_discounts"
+      api_version = "2022-10"
+    `);
+
+    // Run the command to update all files and run Shopify commands
+    updateApiVersionsAndRunCommand(testDirPath);
+    const latestVersion = getLatestApiVersion();
+
+    // Check if files have been updated
+    const updatedContent1 = fs.readFileSync(testFilePath1, 'utf-8');
+    const updatedContent2 = fs.readFileSync(testFilePath2, 'utf-8');
+    expect(updatedContent1).toContain(`api_version = "${latestVersion}"`);
+    expect(updatedContent2).toContain(`api_version = "${latestVersion}"`);
+
+    // Expect the execSync to be called twice (one for each file's directory)
+    expect(require('child_process').execSync).toHaveBeenCalledTimes(2);
+
+    // Clean up the environment variable
+    delete process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
+
+    // Clean up test files and directories
+    fs.unlinkSync(testFilePath1);
+    fs.unlinkSync(testFilePath2);
+    fs.rmdirSync(path.join(testDirPath, 'dir1'));
+    fs.rmdirSync(path.join(testDirPath, 'dir2'));
   });
 
 });
