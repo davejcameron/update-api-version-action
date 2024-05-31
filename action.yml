@@ -1,0 +1,5 @@
+name: 'Update Shopify Extension API Version'
+description: 'Updates the API version in shopify.extension.toml files to the latest available version.'
+runs:
+  using: 'node12'
+  main: 'index.js'
