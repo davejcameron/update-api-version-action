@@ -59,28 +59,32 @@ describe('GitHub Action for Updating Shopify API Version', () => {
   test('should run Shopify command if environment variable is set', () => {
     const testDirPath = path.resolve(__dirname);
     const shopifyToken = 'test_token';
+    const config = 'test_config';
 
     // Mocking the presence of environment variable
     process.env.SHOPIFY_CLI_PARTNERS_TOKEN = shopifyToken;
+    process.env.INPUT_CONFIG = config;
 
     // Run the Shopify command
-    runShopifyCommand(testDirPath);
+    runShopifyCommand(testDirPath, config);
 
     // Expect the execSync to be called with the correct command
-    expect(require('child_process').execSync).toHaveBeenCalledWith(`shopify app function schema --path ${testDirPath}`, { stdio: 'inherit' });
+    expect(require('child_process').execSync).toHaveBeenCalledWith(`shopify app function schema --path ${testDirPath} --config ${config}`, { stdio: 'inherit' });
 
     // Clean up the environment variable
     delete process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
+    delete process.env.INPUT_CONFIG;
   });
 
   test('should not run Shopify command if environment variable is not set', () => {
     const testDirPath = path.resolve(__dirname);
+    const config = 'test_config';
 
     // Ensure the environment variable is not set
     delete process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
 
     // Run the Shopify command
-    runShopifyCommand(testDirPath);
+    runShopifyCommand(testDirPath, config);
 
     // Expect the execSync not to be called
     expect(require('child_process').execSync).not.toHaveBeenCalled();
@@ -89,9 +93,11 @@ describe('GitHub Action for Updating Shopify API Version', () => {
   test('should update all TOML files and run Shopify command if environment variable is set', () => {
     const testDirPath = path.resolve(__dirname);
     const shopifyToken = 'test_token';
+    const config = 'test_config';
 
     // Mocking the presence of environment variable
     process.env.SHOPIFY_CLI_PARTNERS_TOKEN = shopifyToken;
+    process.env.INPUT_CONFIG = config;
 
     // Create a test directory structure with TOML files
     const testFilePath1 = path.join(testDirPath, 'dir1/shopify.extension.toml');
@@ -110,7 +116,7 @@ describe('GitHub Action for Updating Shopify API Version', () => {
     `);
 
     // Run the command to update all files and run Shopify commands
-    updateApiVersionsAndRunCommand(testDirPath);
+    updateApiVersionsAndRunCommand(testDirPath, config);
     const latestVersion = getLatestApiVersion();
 
     // Check if files have been updated
@@ -124,39 +130,13 @@ describe('GitHub Action for Updating Shopify API Version', () => {
 
     // Clean up the environment variable
     delete process.env.SHOPIFY_CLI_PARTNERS_TOKEN;
+    delete process.env.INPUT_CONFIG;
 
     // Clean up test files and directories
     fs.unlinkSync(testFilePath1);
     fs.unlinkSync(testFilePath2);
     fs.rmdirSync(path.join(testDirPath, 'dir1'));
     fs.rmdirSync(path.join(testDirPath, 'dir2'));
-  });
-
-  test('should use Shopify config if provided', () => {
-    const config = 'production';
-    process.env.INPUT_CONFIG = config;
-
-    // Mock the main function to test the config usage
-    const main = require('../index').main;
-    main();
-
-    // Expect the execSync to be called with the correct config command
-    expect(require('child_process').execSync).toHaveBeenCalledWith(`shopify app config use ${config}`, { stdio: 'inherit' });
-
-    // Clean up the environment variable
-    delete process.env.INPUT_CONFIG;
-  });
-
-  test('should not use Shopify config if not provided', () => {
-    // Ensure the environment variable is not set
-    delete process.env.INPUT_CONFIG;
-
-    // Mock the main function to test the config usage
-    const main = require('../index').main;
-    main();
-
-    // Expect the execSync not to be called with the config command
-    expect(require('child_process').execSync).not.toHaveBeenCalledWith(expect.stringContaining('shopify config use'));
   });
 
 });

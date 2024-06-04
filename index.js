@@ -27,10 +27,11 @@ function updateTomlFile(filePath) {
   }
 }
 
-function runShopifyCommand(dirPath) {
+function runShopifyCommand(dirPath, config) {
   if (process.env.SHOPIFY_CLI_PARTNERS_TOKEN) {
     try {
-      execSync(`shopify app function schema --path ${dirPath}`, { stdio: 'inherit' });
+      const configOption = config ? `--config ${config}` : '';
+      execSync(`shopify app function schema --path ${dirPath} ${configOption}`, { stdio: 'inherit' });
     } catch (error) {
       console.error(`Error running Shopify command in ${dirPath}: ${error.message}`);
     }
@@ -54,27 +55,22 @@ function findTomlFiles(dir) {
   return results;
 }
 
-function updateApiVersionsAndRunCommand(baseDir) {
+function updateApiVersionsAndRunCommand(baseDir, config) {
   const tomlFiles = findTomlFiles(baseDir);
   for (const tomlFile of tomlFiles) {
     updateTomlFile(tomlFile);
-    runShopifyCommand(path.dirname(tomlFile));
+    runShopifyCommand(path.dirname(tomlFile), config);
   }
 }
 
 function main() {
   const config = process.env.INPUT_CONFIG;
   if (config) {
-    try {
-      execSync(`shopify app config use ${config}`, { stdio: 'inherit' });
-      console.log(`Using Shopify config: ${config}`);
-    } catch (error) {
-      console.error(`Error setting Shopify config to ${config}: ${error.message}`);
-    }
+    console.log(`Using Shopify config: ${config}`);
   } else {
     console.log('No Shopify config provided. Skipping config setup.');
   }
-  updateApiVersionsAndRunCommand(process.cwd());
+  updateApiVersionsAndRunCommand(process.cwd(), config);
 }
 
 main();

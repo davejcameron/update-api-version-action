@@ -37,7 +37,7 @@ jobs:
       - name: Update Shopify API version
         uses: davejcameron/update-api-version-action@main
         with:
-          config: 'production'  # Optional
+          config: 'shopify.app.production.toml'  # Optional
         env:
           SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
           SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }} # App context to use
