@@ -132,4 +132,31 @@ describe('GitHub Action for Updating Shopify API Version', () => {
     fs.rmdirSync(path.join(testDirPath, 'dir2'));
   });
 
+  test('should use Shopify config if provided', () => {
+    const config = 'production';
+    process.env.INPUT_CONFIG = config;
+
+    // Mock the main function to test the config usage
+    const main = require('../index').main;
+    main();
+
+    // Expect the execSync to be called with the correct config command
+    expect(require('child_process').execSync).toHaveBeenCalledWith(`shopify app config use ${config}`, { stdio: 'inherit' });
+
+    // Clean up the environment variable
+    delete process.env.INPUT_CONFIG;
+  });
+
+  test('should not use Shopify config if not provided', () => {
+    // Ensure the environment variable is not set
+    delete process.env.INPUT_CONFIG;
+
+    // Mock the main function to test the config usage
+    const main = require('../index').main;
+    main();
+
+    // Expect the execSync not to be called with the config command
+    expect(require('child_process').execSync).not.toHaveBeenCalledWith(expect.stringContaining('shopify config use'));
+  });
+
 });

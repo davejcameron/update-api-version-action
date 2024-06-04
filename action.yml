@@ -1,5 +1,9 @@
 name: 'Update Shopify Extension API Version'
 description: 'Updates the API version in shopify.extension.toml files to the latest available version.'
+inputs:
+  config:
+    description: 'Configuration to use for Shopify CLI commands'
+    required: false
 runs:
   using: 'node16'
   main: 'dist/index.js'
