@@ -68,9 +68,24 @@ function updateApiVersionsAndRunCommand(baseDir) {
   }
 }
 
-updateApiVersionsAndRunCommand(process.cwd());
+function main() {
+  const config = process.env.INPUT_CONFIG;
+  if (config) {
+    try {
+      execSync(`shopify app config use ${config}`, { stdio: 'inherit' });
+      console.log(`Using Shopify config: ${config}`);
+    } catch (error) {
+      console.error(`Error setting Shopify config to ${config}: ${error.message}`);
+    }
+  } else {
+    console.log('No Shopify config provided. Skipping config setup.');
+  }
+  updateApiVersionsAndRunCommand(process.cwd());
+}
 
-module.exports = { getLatestApiVersion, updateTomlFile, runShopifyCommand, updateApiVersionsAndRunCommand };
+main();
+
+module.exports = { main, getLatestApiVersion, updateTomlFile, runShopifyCommand, updateApiVersionsAndRunCommand };
 
 /***/ }),
 
